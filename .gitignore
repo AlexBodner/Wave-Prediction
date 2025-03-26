@@ -3,3 +3,4 @@
 *.csv
 datasets/
 camera_info_data/
+*.nc
