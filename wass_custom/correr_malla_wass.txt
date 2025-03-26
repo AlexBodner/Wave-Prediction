@@ -1,0 +1,79 @@
+Para crear el mean sea plane y convertir a xyzC compilar con:
+
+g++ main.cpp wass/src/wass_stereo/PovMesh.cpp   -I wass/src/include   -o ransac_plane   `pkg-config --cflags --libs opencv4`   -lboost_system -lboost_filesystem
+
+correr con:
+
+./ransac_plane wass/mesh_converted.xyz
+
+o wass_custom\wass_data\output\000000_wd_our_data\points.xyz
+Por ultimo, para calcular la superficie hay que ejecutar los siguientes comandos desde \Wave Prediction\wass_custom : 
+
+python wass/gridding/wassgridsurface/wassgridsurface.py --action setup ./wass_data/output ./wass_data/gridding --gridconfig ./wass_data/gridding/gridconfig.txt --baseline 3.0
+ WASS surface gridder v. 0.9.2
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+Copyright (C) Filippo Bergamasco 2022
+
+Looking for WASS reconstructed stereo frames in  ./wass_data/output
+1 frames found.
+Looking planes definition file  ./wass_data/output
+Found! Loading...
+Loading grid configuration file: ./wass_data/gridding/gridconfig.txt
+Baseline: 3.00
+Camera image size: 640x480 (override with -Iw -Ih program arguments)
+Loading  ./wass_data/output\000000_wd\mesh_cam.xyzC
+zmin .. zmax = -0.85 ... 0.85
+0.048875855327469964
+0.04887585532746641
+Generating grid area plot...
+Please open ./wass_data/gridding\area_grid.png and check if everything is ok
+Saving grid setup to ./wass_data/gridding\config.mat
+
+
+
+Aca si no nos gusta el resultado de area_grid.png podemos editar los parametros en gridding/gridconfig.txt
+
+
+
+PS C:\Users\alex_\Documents\Udesa\Research\Wave Prediction\wass_custom>  python wass/gridding/wassgridsurface/wassgridsurface.py --action grid --gridsetup ./wass_data/gridding/config.mat ./wass_data/output ./wass_data/gridding/                       
+ WASS surface gridder v. 0.9.2
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+Copyright (C) Filippo Bergamasco 2022
+
+Looking for WASS reconstructed stereo frames in  ./wass_data/output
+1 frames found.
+Looking planes definition file  ./wass_data/output
+Found! Loading...
+Interpolation algorithm: DCT
+Using 1 thread(s) for reconstruction...
+Using cpu device
+
+DCT Interpolator settings:
+           Nfreqs: 150
+REGULARIZER_ALPHA: 0.000001
+    LEARNING_RATE: 5.000000
+ TOLERANCE_CHANGE: 0.000100
+        MAX_ITERS: 500
+
+./wass_data/output\000000_wd
+  0%|                                                                                                                          | 0/1 [00:00<?, ?it/s]C:\Users\alex_\Documents\Udesa\Research\Wave Prediction\wass_custom\wass\gridding\wassgridsurface\wassgridsurface.py:322: RuntimeWarning: All-NaN slice encountered
+  ZZ = np.nanmedian( ZZ, axis=-1 )
+Iteration 00000 - Loss: 0.51181 =  data: 0.42734  reg: 105586.72656   F max delta: 5.00000
+Iteration 00050 - Loss: 0.00423 =  data: 0.00170  reg: 3158.69189   F max delta: 1.15907                                                              
+Iteration 00100 - Loss: 0.00411 =  data: 0.00169  reg: 3018.62769   F max delta: 0.26869                                                              
+Iteration 00150 - Loss: 0.00408 =  data: 0.00169  reg: 2988.25684   F max delta: 0.17938                                                              
+Iteration 00200 - Loss: 0.00407 =  data: 0.00169  reg: 2979.10864   F max delta: 0.11977                                                              
+Iteration 00250 - Loss: 0.00407 =  data: 0.00169  reg: 2975.44458   F max delta: 0.07995                                                              
+Iteration 00300 - Loss: 0.00407 =  data: 0.00169  reg: 2974.32129   F max delta: 0.05338                                                              
+Iteration 00350 - Loss: 0.00407 =  data: 0.00169  reg: 2973.28296   F max delta: 0.03564                                                              
+Iteration 00400 - Loss: 0.00407 =  data: 0.00169  reg: 2972.41309   F max delta: 0.02379                                                              
+Iteration 00450 - Loss: 0.00407 =  data: 0.00169  reg: 2971.86157   F max delta: 0.04575                                                              
+Iteration 00500 - Loss: 0.00407 =  data: 0.00169  reg: 2971.48511   F max delta: 0.03055                                                              
+100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [01:06<00:00, 66.92s/it] 
+Reconstructed sequence stats:
+    Zmin:  -0.75744164
+    Zmax:  0.7175779
+   Zmean:  0.002139503
+# frames:  1
+Gridding completed.
+

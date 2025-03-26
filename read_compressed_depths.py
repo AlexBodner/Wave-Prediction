@@ -7,10 +7,13 @@ import os
 
 # Create output directory if it doesn't exist
 output_dir = Path('extracted_depths')
+output_raw = Path('raw_depths')
+output_raw.mkdir(exist_ok=True)
+
 output_dir.mkdir(exist_ok=True)
 
 # Path to your ROS 2 bag directory
-bag_path = Path('test_bag')
+bag_path = Path('datasets/primera_captura_13_03')
 
 # Initialize the AnyReader
 with AnyReader([bag_path]) as reader:
@@ -57,9 +60,9 @@ with AnyReader([bag_path]) as reader:
                 print(f"Saved heatmap with legend: {output_path}")
 
                 # Optional: Save original 16-bit data
-                raw_output_path = output_dir / f'depth_raw_{timestamp}.png'
-                #cv2.imwrite(str(raw_output_path), image)
-                #print(f"Saved raw 16-bit image: {raw_output_path}")
+                raw_output_path = output_raw / f'depth_raw_{timestamp}.png'
+                cv2.imwrite(str(raw_output_path), image)
+                print(f"Saved raw 16-bit image: {raw_output_path}")
 
             except Exception as e:
                 print(f"Error processing message: {e}")

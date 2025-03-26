@@ -104,10 +104,10 @@ if __name__ == "__main__":
     bag_file = 'datasets/primera_captura_13_03/rosbag2_2025_03_13-15_57_34_0.db3'
 
     # Topic name for camera info
-    topic_name = '/camera/camera/color/camera_info'
+    topic_name = '/camera/camera/depth/camera_info'
 
     # Output directory for saving camera info
-    output_dir = 'camera_info_data'
+    output_dir = 'camera_info_data2'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
