@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import fit_mean_plane
 import pyvista as pv
 
-def visualize_points(points):
+def visualize_points(points, coord_system):
     fig = plt.figure(figsize=(10, 7))
     ax = fig.add_subplot(111, projection='3d')
 
@@ -32,7 +32,7 @@ def visualize_points(points):
     ax.set_xlabel('X (m)')
     ax.set_ylabel('Y (m)')
     ax.set_zlabel('Z (m)')
-    ax.set_title('Pointcloud in World Coordinates')
+    ax.set_title(f'Pointcloud in {coord_system} Coordinates')
     plt.show()
 def read_rosbag(bag_path):
     storage_options = StorageOptions(uri=bag_path, storage_id='sqlite3')
@@ -124,7 +124,7 @@ def apply_transform(points, transform):
     transformed_points = rotated_points + translation
     return transformed_points
 
-def process_bag(bag_path):
+def process_bag(bag_path, fit_plane = True):
     messages = read_rosbag(bag_path)
     depth_images = messages['/camera/camera/depth/image_rect_raw/compressedDepth']
     camera_infos = messages['/camera/camera/depth/camera_info']
@@ -156,9 +156,12 @@ def process_bag(bag_path):
             continue
         # Convert depth image to 3D points
         points = depth_to_points(depth_image, camera_info)
+        visualize_points(points, coord_system = "camara")
 
         # Apply transform from camera to imu optical frame
         points_in_imu = apply_transform(points, transform_cam_to_imu)
+        visualize_points(points_in_imu, coord_system = "imu")
+
         # Get closest IMU orientation
         imu_orientation = None
         for imu_t, imu in imu_data:
@@ -169,27 +172,29 @@ def process_bag(bag_path):
             continue
 
         # Apply IMU orientation to transform points to world frame
+        print(imu_orientation)
         rotation = R.from_quat([imu_orientation.x,
                                 imu_orientation.y,
                                 imu_orientation.z,
                                 imu_orientation.w])
         points_in_world = rotation.apply(points_in_imu)
+        if fit_plane:
+            centroid, normal, u, v, inliers = fit_mean_plane.fit_plane_ransac(points_in_world, 
+                thresh=0.1, max_iterations=20)
+            mesh = pv.PolyData(points_in_world).delaunay_2d()
+            pts_world, uvz = fit_mean_plane.sample_on_plane(mesh, centroid, u, v, normal,
+                                                        grid_size=(256,256), spacing=0.05)
+            grid = fit_mean_plane.make_structured_grid(pts_world, uvz)
 
-        centroid, normal, u, v, inliers = fit_mean_plane.fit_plane_ransac(points_in_world)
-        mesh = pv.PolyData(points_in_world).delaunay_2d()
-        pts_world, uvz = fit_mean_plane.sample_on_plane(mesh, centroid, u, v, normal,
-                                                     grid_size=(256,256), spacing=0.05)
-        grid = fit_mean_plane.make_structured_grid(pts_world, uvz)
+            # Visualización con PyVista en vez de matplotlib
+            p = pv.Plotter()
+            #p.add_mesh(mesh, color="lightgray", opacity=0.3, label="Pointcloud")
+            fit_mean_plane.plot_plane_with_points(points_in_world, centroid, normal, scale=0.5)
 
-        # Visualización con PyVista en vez de matplotlib
-        p = pv.Plotter()
-        #p.add_mesh(mesh, color="lightgray", opacity=0.3, label="Pointcloud")
-        fit_mean_plane.plot_plane_with_points(points_in_world, centroid, normal, scale=0.5)
-
-        p.add_mesh(grid, scalars="z_local", cmap="viridis", show_scalar_bar=True, label="Plane Sampled")
-        p.add_legend()
-        p.show()
-        # visualize_points(points_in_world)
+            p.add_mesh(grid, scalars="z_local", cmap="viridis", show_scalar_bar=True, label="Plane Sampled")
+            p.add_legend()
+            p.show()
+        visualize_points(points_in_world, coord_system = "world")
         print(f"Processed {len(points_in_world)} points at timestamp {t}")
         print(points_in_world)
         break
