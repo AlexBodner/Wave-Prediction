@@ -13,9 +13,11 @@ from cv_bridge import CvBridge
 from tf2_ros import TransformException
 import rclpy
 from tf2_ros.buffer_interface import TransformStamped
+from mpl_toolkits.mplot3d import Axes3D
 
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # for 3d plotting
+import fit_mean_plane
+import pyvista as pv
 
 def visualize_points(points):
     fig = plt.figure(figsize=(10, 7))
@@ -122,21 +124,6 @@ def apply_transform(points, transform):
     transformed_points = rotated_points + translation
     return transformed_points
 
-def transform_pointcloud_to_imu_optical(tf_buffer, pointcloud):
-    try:
-        # Will automatically find the full path between the frames
-        transform = tf_buffer.lookup_transform(
-            target_frame='camera_imu_optical_frame',
-            source_frame='camera_depth_optical_frame',
-            time=rclpy.time.Time()
-        )
-        # Apply the transform to the point cloud
-        transformed = tf2_geometry_msgs.do_transform_cloud(pointcloud, transform)
-        return transformed
-
-    except TransformException as ex:
-        print(f"Transform failed: {ex}")
-        return None
 def process_bag(bag_path):
     messages = read_rosbag(bag_path)
     depth_images = messages['/camera/camera/depth/image_rect_raw/compressedDepth']
@@ -187,7 +174,22 @@ def process_bag(bag_path):
                                 imu_orientation.z,
                                 imu_orientation.w])
         points_in_world = rotation.apply(points_in_imu)
-        visualize_points(points_in_world)
+
+        centroid, normal, u, v, inliers = fit_mean_plane.fit_plane_ransac(points_in_world)
+        mesh = pv.PolyData(points_in_world).delaunay_2d()
+        pts_world, uvz = fit_mean_plane.sample_on_plane(mesh, centroid, u, v, normal,
+                                                     grid_size=(256,256), spacing=0.05)
+        grid = fit_mean_plane.make_structured_grid(pts_world, uvz)
+
+        # Visualización con PyVista en vez de matplotlib
+        p = pv.Plotter()
+        #p.add_mesh(mesh, color="lightgray", opacity=0.3, label="Pointcloud")
+        fit_mean_plane.plot_plane_with_points(points_in_world, centroid, normal, scale=0.5)
+
+        p.add_mesh(grid, scalars="z_local", cmap="viridis", show_scalar_bar=True, label="Plane Sampled")
+        p.add_legend()
+        p.show()
+        # visualize_points(points_in_world)
         print(f"Processed {len(points_in_world)} points at timestamp {t}")
         print(points_in_world)
         break
