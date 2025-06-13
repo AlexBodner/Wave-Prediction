@@ -4,6 +4,7 @@ import pyvista as pv
 from scipy.spatial import cKDTree
 
 import matplotlib.pyplot as plt
+
 from mpl_toolkits.mplot3d import Axes3D
 def fit_plane_ransac(points, thresh=0.1, max_iterations=100):
     """
@@ -130,13 +131,14 @@ def plot_plane_with_points(points, centroid, normal, scale=1.0):
     U, V = np.meshgrid(uu, vv)
     plane_pts = centroid + U[...,None]*u + V[...,None]*v
     Xp, Yp, Zp = plane_pts[...,0], plane_pts[...,1], plane_pts[...,2]
-
+    ax._facecolors2d = ax._facecolor
+    #ax._edgecolors2d = ax._edgecolor 
     ax.plot_surface(Xp, Yp, Zp, color='r', alpha=0.3, label='Plano fitteado')
 
     # Etiquetas y vista
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    ax.set_title('Punto-nube y plano ajustado por RANSAC')
-    plt.legend()
+    ax.set_title('Nube de puntos  y plano ajustado por RANSAC')
+    #plt.legend()
     plt.show()
