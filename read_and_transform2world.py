@@ -1,4 +1,3 @@
-
 import rclpy
 from rclpy.serialization import deserialize_message
 from rosidl_runtime_py.utilities import get_message
@@ -179,19 +178,27 @@ def process_bag(bag_path, fit_plane = True):
                                 imu_orientation.w])
         points_in_world = rotation.apply(points_in_imu)
         if fit_plane:
-            centroid, normal, u, v, inliers = fit_mean_plane.fit_plane_ransac(points_in_world, 
-                thresh=0.1, max_iterations=20)
-            mesh = pv.PolyData(points_in_world).delaunay_2d()
-            pts_world, uvz = fit_mean_plane.sample_on_plane(mesh, centroid, u, v, normal,
-                                                        grid_size=(256,256), spacing=0.05)
-            grid = fit_mean_plane.make_structured_grid(pts_world, uvz)
-
-            # Visualización con PyVista en vez de matplotlib
+            # Crear grillado uniforme
+            grid_points, mesh = fit_mean_plane.create_uniform_grid(
+                points_in_world, grid_size=(256,256), spacing=0.05)
+            
+            # Calcular transformación al plano
+            centroid, R, normal, u, v = fit_mean_plane.compute_plane_transform(grid_points)
+            
+            # Transformar puntos al sistema del plano
+            points_plane = fit_mean_plane.transform_to_plane_coords(points_in_world, centroid, R)
+            grid_plane = fit_mean_plane.transform_to_plane_coords(grid_points.reshape(-1,3), centroid, R)
+            
+            # Crear grilla estructurada para visualización
+            grid = fit_mean_plane.make_structured_grid(
+                grid_points.reshape(-1,3), 
+                grid_plane.reshape(grid_points.shape))
+            
+            # Visualización
             p = pv.Plotter()
-            #p.add_mesh(mesh, color="lightgray", opacity=0.3, label="Pointcloud")
-            fit_mean_plane.plot_plane_with_points(points_in_world, centroid, normal, scale=0.5)
-
-            p.add_mesh(grid, scalars="z_local", cmap="viridis", show_scalar_bar=True, label="Plane Sampled")
+            p.add_mesh(pv.PolyData(points_in_world), color="lightgray", opacity=0.3, label="Points")
+            p.add_mesh(grid, scalars=grid_plane[:,2], cmap="viridis", 
+                      show_scalar_bar=True, label="Height Field")
             p.add_legend()
             p.show()
         visualize_points(points_in_world, coord_system = "world")
@@ -279,4 +286,4 @@ def get_transform_along_chain(chain, tf_messages):
 # Example usage
 if __name__ == '__main__':
     bag_path = 'bag_imu_tf_depth'
-    process_bag(bag_path)
+    process_bag(bag_path, fit_plane=True)

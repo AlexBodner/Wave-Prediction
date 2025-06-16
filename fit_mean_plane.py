@@ -142,3 +142,56 @@ def plot_plane_with_points(points, centroid, normal, scale=1.0):
     ax.set_title('Nube de puntos  y plano ajustado por RANSAC')
     #plt.legend()
     plt.show()
+def create_uniform_grid(points, grid_size=(256,256), spacing=0.05):
+    """
+    Crea un grillado uniforme de la nube de puntos
+    """
+    # Crear malla Delaunay
+    mesh = pv.PolyData(points).delaunay_2d()
+    
+    # Calcular límites del grid
+    bounds = mesh.bounds
+    x_min, x_max = bounds[0], bounds[1]
+    y_min, y_max = bounds[2], bounds[3]
+    
+    # Crear grid uniforme
+    x = np.arange(x_min, x_max, spacing)
+    y = np.arange(y_min, y_max, spacing)
+    x = x[:grid_size[0]] if len(x) > grid_size[0] else x
+    y = y[:grid_size[1]] if len(y) > grid_size[1] else y
+    
+    X, Y = np.meshgrid(x, y)
+    points_2d = np.column_stack((X.ravel(), Y.ravel()))
+    
+    # Interpolar alturas
+    heights = mesh.interpolate(points_2d)
+    Z = heights.reshape(X.shape)
+    
+    grid_points = np.stack((X, Y, Z), axis=-1)
+    return grid_points, mesh
+
+def compute_plane_transform(grid_points):
+    """
+    Calcula la transformación al sistema de coordenadas del plano medio
+    """
+    # Calcular plano medio usando PCA
+    centroid = np.mean(grid_points.reshape(-1, 3), axis=0)
+    centered = grid_points.reshape(-1, 3) - centroid
+    U, S, Vt = np.linalg.svd(centered, full_matrices=False)
+    
+    # Los vectores base del plano son las últimas dos columnas de Vt
+    normal = Vt[2]  # Vector normal (menor varianza)
+    u = Vt[0]       # Primera dirección principal
+    v = Vt[1]       # Segunda dirección principal
+    
+    # Matriz de rotación del sistema mundial al sistema del plano
+    R = np.vstack((u, v, normal))
+    
+    return centroid, R, normal, u, v
+
+def transform_to_plane_coords(points, centroid, R):
+    """
+    Transforma puntos al sistema de coordenadas del plano
+    """
+    centered = points - centroid
+    return centered @ R.T  # Multiplicar por R.T para rotar al sistema del plano
