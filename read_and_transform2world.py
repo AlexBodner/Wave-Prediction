@@ -189,16 +189,20 @@ def process_bag(bag_path, fit_plane = True):
             points_plane = fit_mean_plane.transform_to_plane_coords(points_in_world, centroid, R)
             grid_plane = fit_mean_plane.transform_to_plane_coords(grid_points.reshape(-1,3), centroid, R)
             
+            # Normalizar grid
+            grid_normalized, (mins, maxs) = fit_mean_plane.normalize_grid(
+                grid_plane.reshape(grid_points.shape))
+            
             # Crear grilla estructurada para visualización
             grid = fit_mean_plane.make_structured_grid(
                 grid_points.reshape(-1,3), 
-                grid_plane.reshape(grid_points.shape))
+                grid_normalized.reshape(grid_points.shape))
             
             # Visualización
             p = pv.Plotter()
             p.add_mesh(pv.PolyData(points_in_world), color="lightgray", opacity=0.3, label="Points")
-            p.add_mesh(grid, scalars=grid_plane[:,2], cmap="viridis", 
-                      show_scalar_bar=True, label="Height Field")
+            p.add_mesh(grid, scalars=grid_normalized[...,2].ravel(), cmap="viridis", 
+                      show_scalar_bar=True, label="Normalized Height")
             p.add_legend()
             p.show()
         visualize_points(points_in_world, coord_system = "world")

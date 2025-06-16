@@ -195,3 +195,15 @@ def transform_to_plane_coords(points, centroid, R):
     """
     centered = points - centroid
     return centered @ R.T  # Multiplicar por R.T para rotar al sistema del plano
+def normalize_grid(grid_points):
+    """
+    Normaliza los puntos del grid para que estén entre 0 y 1
+    Returns:
+        normalized_points: puntos normalizados
+        scale_factors: (mins, maxs) para poder desnormalizar
+    """
+    mins = np.min(grid_points, axis=(0,1))
+    maxs = np.max(grid_points, axis=(0,1))
+    scale = maxs - mins
+    normalized = (grid_points - mins) / scale
+    return normalized, (mins, maxs)
