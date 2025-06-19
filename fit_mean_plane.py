@@ -144,35 +144,42 @@ def plot_plane_with_points(points, centroid, normal, scale=1.0):
     plt.show()
 def create_uniform_grid(points, grid_size=(256,256), spacing=0.05):
     """
-    Crea un grillado uniforme de la nube de puntos
+    Crea un grid uniforme (pyvista.ImageData) a partir de una nube de puntos en 2D,
+    triangula con Delaunay, y mapea los datos (por ejemplo la elevación z) sobre el grid.
+    
+    Parámetros:
+        points: ndarray (N,3) — coordenadas X, Y, Z.
+        grid_size: tuple (nx, ny) — número de celdas a lo largo de X e Y.
+        spacing: float o tuple (sx, sy) — tamaño de espaciado de la malla.
+        
+    Devuelve:
+        grid: pyvista.ImageData — con datos muestreados.
     """
-    # Crear malla Delaunay
-    mesh = pv.PolyData(points).delaunay_2d()
+    # 1. Triangular la nube (Delaunay 2D)
+    mesh = pv.PolyData(points[:, :3]).delaunay_2d()
 
-    # Calcular límites del grid
-    bounds = mesh.bounds
-    x_min, x_max = bounds[0], bounds[1]
-    y_min, y_max = bounds[2], bounds[3]
+    # 2. Obtener límites de X e Y
+    xmin, xmax, ymin, ymax = mesh.bounds[0], mesh.bounds[1], mesh.bounds[2], mesh.bounds[3]
 
-    # Crear grid uniforme
-    x = np.arange(x_min, x_max, spacing)
-    y = np.arange(y_min, y_max, spacing)
-    x = x[:grid_size[0]] if len(x) > grid_size[0] else x
-    y = y[:grid_size[1]] if len(y) > grid_size[1] else y
+    # 3. Definir dimensiones y espaciado
+    nx, ny = grid_size
+    sx = sy = spacing if np.isscalar(spacing) else spacing
 
-    X, Y = np.meshgrid(x, y)
-    points_2d = np.column_stack((X.ravel(), Y.ravel()))
+    # 4. Crear el grid uniforme
+    grid = pv.ImageData()
+    grid.dimensions = (nx + 1, ny + 1, 2)  # capaz solo un único layer en Z
+    grid.origin = (xmin, ymin, points[:,2].min())
+    grid.spacing = ( (xmax - xmin) / nx, (ymax - ymin) / ny, 1.0 )
 
-    # Convert points_2d to a PyVista PolyData object
-    target_points_polydata = pv.PolyData(points_2d)
+    # 5. Muestrear valores de z del mesh en la cuadrícula
+    # Primero, extraemos el valor z como un scalar
+    mesh_pt = mesh.points
+    mesh['elevation'] = mesh_pt[:, 2]
 
-    # Interpolar alturas
-    heights = mesh.interpolate(target_points_polydata) # Pass the PolyData object here
-    print(heights.shape, X.shape, Y.shape)
-    Z = heights['scalars'].reshape(X.shape) # Access the interpolated scalars
+    # Muestreo por interpolación desde la malla
+    sampled = grid.sample(mesh)
 
-    grid_points = np.stack((X, Y, Z), axis=-1)
-    return grid_points, mesh
+    return sampled, mesh
 def compute_plane_transform(grid_points):
     """
     Calcula la transformación al sistema de coordenadas del plano medio
