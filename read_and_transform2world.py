@@ -200,6 +200,9 @@ def process_bag(bag_path, fit_plane = True):
                                imu_orientation.z,
                                imu_orientation.w])
        points_in_world = rotation.apply(points_in_imu)
+       visualize_points(points_in_world, coord_system = "world")
+
+
        if fit_plane:
            # Crear grillado uniforme
            grid_points, mesh = fit_mean_plane.create_uniform_grid(
