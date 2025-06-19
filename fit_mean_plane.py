@@ -146,6 +146,7 @@ def create_uniform_grid(points, grid_size=(256,256), spacing=0.05):
     """
     Crea un grillado uniforme de la nube de puntos usando interpolación sobre la malla.
     Para cada (x, y) del grid, interpola el valor z usando la malla Delaunay.
+    Si la interpolación falla, rellena con NaN.
     """
     mesh = pv.PolyData(points).delaunay_2d()
     bounds = mesh.bounds
@@ -159,9 +160,18 @@ def create_uniform_grid(points, grid_size=(256,256), spacing=0.05):
 
     # Interpolar usando la malla
     sampled = mesh.sample(XY)
-    Z = sampled.points[:, 2]
-    grid_points = np.stack([X.ravel(), Y.ravel(), Z], axis=-1).reshape(grid_size[0], grid_size[1], 3)
+    # sampled.points puede tener menos puntos si algunos XY están fuera de la malla
+    # Creamos un array lleno de NaN y lo llenamos donde hay datos válidos
+    Z = np.full(X.size, np.nan)
+    # PyVista mantiene el orden, pero solo para los puntos válidos
+    # Por lo tanto, necesitamos mapear los puntos interpolados a los originales
+    # Usamos la proyección XY para encontrar los índices
+    from scipy.spatial import cKDTree
+    tree = cKDTree(XY[:, :2])
+    idxs = tree.query(sampled.points[:, :2], k=1)[1]
+    Z[idxs] = sampled.points[:, 2]
 
+    grid_points = np.stack([X.ravel(), Y.ravel(), Z], axis=-1).reshape(grid_size[0], grid_size[1], 3)
     return grid_points, mesh
 
 def compute_plane_transform(grid_points):
