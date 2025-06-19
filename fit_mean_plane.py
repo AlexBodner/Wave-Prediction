@@ -148,29 +148,31 @@ def create_uniform_grid(points, grid_size=(256,256), spacing=0.05):
     """
     # Crear malla Delaunay
     mesh = pv.PolyData(points).delaunay_2d()
-    
+
     # Calcular límites del grid
     bounds = mesh.bounds
     x_min, x_max = bounds[0], bounds[1]
     y_min, y_max = bounds[2], bounds[3]
-    
+
     # Crear grid uniforme
     x = np.arange(x_min, x_max, spacing)
     y = np.arange(y_min, y_max, spacing)
     x = x[:grid_size[0]] if len(x) > grid_size[0] else x
     y = y[:grid_size[1]] if len(y) > grid_size[1] else y
-    
+
     X, Y = np.meshgrid(x, y)
     points_2d = np.column_stack((X.ravel(), Y.ravel()))
-    
+
+    # Convert points_2d to a PyVista PolyData object
+    target_points_polydata = pv.PolyData(points_2d)
+
     # Interpolar alturas
-    heights = mesh.interpolate(points_2d)
+    heights = mesh.interpolate(target_points_polydata) # Pass the PolyData object here
     print(heights.shape, X.shape, Y.shape)
-    Z = heights.reshape(X.shape)
-    
+    Z = heights['scalars'].reshape(X.shape) # Access the interpolated scalars
+
     grid_points = np.stack((X, Y, Z), axis=-1)
     return grid_points, mesh
-
 def compute_plane_transform(grid_points):
     """
     Calcula la transformación al sistema de coordenadas del plano medio
