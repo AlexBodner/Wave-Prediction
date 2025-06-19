@@ -144,30 +144,24 @@ def plot_plane_with_points(points, centroid, normal, scale=1.0):
     plt.show()
 def create_uniform_grid(points, grid_size=(256,256), spacing=0.05):
     """
-    Crea un grillado uniforme de la nube de puntos
+    Crea un grillado uniforme de la nube de puntos usando interpolación sobre la malla.
+    Para cada (x, y) del grid, interpola el valor z usando la malla Delaunay.
     """
-    # Crear malla Delaunay
     mesh = pv.PolyData(points).delaunay_2d()
-    
-    # Calcular límites del grid
     bounds = mesh.bounds
     x_min, x_max = bounds[0], bounds[1]
     y_min, y_max = bounds[2], bounds[3]
-    
-    # Crear grid uniforme
-    x = np.arange(x_min, x_max, spacing)
-    y = np.arange(y_min, y_max, spacing)
-    x = x[:grid_size[0]] if len(x) > grid_size[0] else x
-    y = y[:grid_size[1]] if len(y) > grid_size[1] else y
-    
+
+    x = np.linspace(x_min, x_max, grid_size[0])
+    y = np.linspace(y_min, y_max, grid_size[1])
     X, Y = np.meshgrid(x, y)
-    points_2d = np.column_stack((X.ravel(), Y.ravel()))
-    
-    # Interpolar alturas
-    heights = mesh.interpolate(points_2d)
-    Z = heights.reshape(X.shape)
-    
-    grid_points = np.stack((X, Y, Z), axis=-1)
+    XY = np.column_stack([X.ravel(), Y.ravel(), np.zeros(X.size)])
+
+    # Interpolar usando la malla
+    sampled = mesh.sample(XY)
+    Z = sampled.points[:, 2]
+    grid_points = np.stack([X.ravel(), Y.ravel(), Z], axis=-1).reshape(grid_size[0], grid_size[1], 3)
+
     return grid_points, mesh
 
 def compute_plane_transform(grid_points):
@@ -206,4 +200,10 @@ def normalize_grid(grid_points):
     maxs = np.max(grid_points, axis=(0,1))
     scale = maxs - mins
     normalized = (grid_points - mins) / scale
+    return normalized, (mins, maxs)
+    return normalized, (mins, maxs)
+    maxs = np.max(grid_points, axis=(0,1))
+    scale = maxs - mins
+    normalized = (grid_points - mins) / scale
+    return normalized, (mins, maxs)
     return normalized, (mins, maxs)
