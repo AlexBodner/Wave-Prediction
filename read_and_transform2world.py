@@ -13,12 +13,12 @@ from tf2_ros import TransformException
 import rclpy
 from tf2_ros.buffer_interface import TransformStamped
 from mpl_toolkits.mplot3d import Axes3D
+import tf2_ros
 
 
 import matplotlib.pyplot as plt
 import fit_mean_plane
 import pyvista as pv
-import tf2_ros
 
 
 def visualize_points(points, coord_system):
@@ -149,22 +149,12 @@ def process_bag(bag_path, fit_plane = True):
     imu_data = messages['/imu/data']
     tf_messages = messages['/tf'] + messages['/tf_static']
 
-
-    # --- NUEVO: Inicializar buffer y listener de tf2 ---
+    # Inicializar tf2 buffer y listener
     import rclpy
-    from rclpy.node import Node
-    import threading
-
-    rclpy.init(args=None)
+    rclpy.init()
     node = rclpy.create_node('tf2_lookup_node')
     tf_buffer = tf2_ros.Buffer()
-    tf_listener = tf2_ros.TransformListener(tf_buffer, node, spin_thread=True)
-
-
-    # Esperar a que el buffer se llene (puedes ajustar el tiempo)
-    import time
-    time.sleep(1.0)
-
+    tf_listener = tf2_ros.TransformListener(tf_buffer, node)
 
     camera_info = camera_infos[0][1]
     i = 0
@@ -172,30 +162,25 @@ def process_bag(bag_path, fit_plane = True):
         i+=1
         if i<20:
             continue
-        # Convert depth image to 3D points
         points = depth_to_points(depth_image, camera_info)
         visualize_points(points, coord_system = "camara")
 
-
-        # --- NUEVO: Lookup transform usando tf2 ---
+        # Buscar el transform usando tf2 lookup
         try:
-            # Ajusta los nombres de los frames según tu setup real
-            target_frame = 'camera_imu_optical_frame'
-            source_frame = 'camera_depth_optical_frame'
-            # El tiempo puede ser 'rclpy.time.Time(seconds=int(t/1e9), nanoseconds=int(t%1e9))'
-            # pero aquí usamos el último disponible
-            trans = tf_buffer.lookup_transform(
-                target_frame,
-                source_frame,
-                rclpy.time.Time(),
-                timeout=rclpy.duration.Duration(seconds=2.0)
+            # Ajusta los nombres de frame según corresponda a tu setup
+            # Usa el timestamp del mensaje depth_image
+            stamp = rclpy.time.Time(seconds=t*1e-9)
+            transform_cam_to_imu = tf_buffer.lookup_transform(
+                'camera_imu_optical_frame',  # target_frame
+                'camera_depth_optical_frame',  # source_frame
+                stamp,
+                timeout=rclpy.duration.Duration(seconds=1.0)
             )
         except Exception as e:
             print(f"TF2 lookup failed: {e}")
             continue
 
-
-        points_in_imu = apply_transform(points, trans.transform)
+        points_in_imu = apply_transform(points, transform_cam_to_imu.transform)
         visualize_points(points_in_imu, coord_system = "imu")
 
 
@@ -246,16 +231,10 @@ def process_bag(bag_path, fit_plane = True):
           
            p.add_legend()
            p.show()
-       visualize_points(points_in_world, coord_system = "world")
-       print(f"Processed {len(points_in_world)} points at timestamp {t}")
-       print(points_in_world)
-       break
-
-    # Shutdown node after processing
-    node.destroy_node()
-    rclpy.shutdown()
-
-
+        visualize_points(points_in_world, coord_system = "world")
+        print(f"Processed {len(points_in_world)} points at timestamp {t}")
+        print(points_in_world)
+        break
 def build_tf_tree(tf_messages):
    tf_tree = {}
    for t, msg in tf_messages:
