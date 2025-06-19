@@ -182,21 +182,21 @@ def create_uniform_grid(points, grid_size=(256,256), spacing=0.05):
     return sampled, mesh
 def compute_plane_transform(grid_points):
     """
-    Calcula la transformación al sistema de coordenadas del plano medio
+    Calcula la transformación al sistema de coordenadas del plano medio.
+    Acepta tanto un ndarray (nu, nv, 3) como un pyvista.ImageData.
     """
-    # Calcular plano medio usando PCA
-    centroid = np.mean(grid_points.reshape(-1, 3), axis=0)
-    centered = grid_points.reshape(-1, 3) - centroid
+    # Si es un pyvista.ImageData, extraer los puntos como ndarray
+    if hasattr(grid_points, "points"):
+        pts = np.asarray(grid_points.points)
+    else:
+        pts = grid_points.reshape(-1, 3)
+    centroid = np.mean(pts, axis=0)
+    centered = pts - centroid
     U, S, Vt = np.linalg.svd(centered, full_matrices=False)
-    
-    # Los vectores base del plano son las últimas dos columnas de Vt
-    normal = Vt[2]  # Vector normal (menor varianza)
-    u = Vt[0]       # Primera dirección principal
-    v = Vt[1]       # Segunda dirección principal
-    
-    # Matriz de rotación del sistema mundial al sistema del plano
+    normal = Vt[2]
+    u = Vt[0]
+    v = Vt[1]
     R = np.vstack((u, v, normal))
-    
     return centroid, R, normal, u, v
 
 def transform_to_plane_coords(points, centroid, R):
