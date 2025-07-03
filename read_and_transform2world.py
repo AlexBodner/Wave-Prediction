@@ -18,8 +18,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import fit_mean_plane
 import pyvista as pv
-
-
+from cv_bridge import CvBridge
 def visualize_points(points, coord_system):
    fig = plt.figure(figsize=(10, 7))
    ax = fig.add_subplot(111, projection='3d')
@@ -47,9 +46,9 @@ def read_rosbag(bag_path):
 
    type_map = {}
    messages = {'/camera/camera/depth/image_rect_raw/compressedDepth': [],
-               '/camera/camera/color/image_raw/compressed': [],  # <-- Add RGB compressed topic here
+               '/camera/camera/color/image_raw/compressed': [], 
                '/camera/camera/depth/camera_info': [],
-               '/imu/data': [],
+               '/camera/camera/imu_madgwick': [],
                '/tf': [],
                '/tf_static': []}
 
@@ -144,10 +143,9 @@ def process_bag(bag_path, fit_plane = True):
    messages = read_rosbag(bag_path)
    depth_images = messages['/camera/camera/depth/image_rect_raw/compressedDepth']
    camera_infos = messages['/camera/camera/depth/camera_info']
-   imu_data = messages['/imu/data']
+   imu_data = messages['/camera/camera/imu_madgwick']
    tf_messages = messages['/tf'] + messages['/tf_static']
-
-
+   rgb_images = messages['/camera/camera/color/image_raw/compressed']
    # Fixed transform chain
    chain = [
        'camera_depth_optical_frame',
@@ -155,7 +153,8 @@ def process_bag(bag_path, fit_plane = True):
        'camera_link',
        'camera_gyro_frame',
        'camera_imu_frame',
-       'camera_imu_optical_frame'
+       'camera_imu_optical_frame',
+       "odom_enu"
    ]
 
 
@@ -171,11 +170,48 @@ def process_bag(bag_path, fit_plane = True):
    i = 0
    for t, depth_image in depth_images:
        i+=1
-       if i<3:
+       if i<54:
            continue
        # Convert depth image to 3D points
        points = depth_to_points(depth_image, camera_info)
        visualize_points(points, coord_system = "camara")
+
+
+       # Mostrar RGB
+
+
+       # Match closest RGB image in time (allow up to 50ms = 5e7 ns)
+       max_allowed_diff = np.inf # 50 ms
+       closest_rgb_msg = None
+       closest_diff = float('inf')
+       bridge = CvBridge()
+       for t_rgb, msg_rgb in rgb_images:
+           diff = abs(t_rgb - t)
+           if diff < closest_diff:
+               closest_diff = diff
+               closest_rgb_msg = msg_rgb
+
+
+       if closest_diff < max_allowed_diff:
+           try:
+               np_arr = np.frombuffer(closest_rgb_msg.data, np.uint8)
+               bgr_image = cv2.imdecode(np_arr,cv2.IMREAD_COLOR)
+               rgb_img = cv2.cvtColor(bgr_image,cv2.COLOR_BGR2RGB)
+               plt.figure(figsize=(8, 6))
+               plt.imshow(rgb_img)
+               plt.title(f"RGB Image Δt = {closest_diff / 1e6:.2f} ms")
+               plt.axis('off')
+               plt.show()
+           except Exception as e:
+               print(f"Failed to decode RGB image: {e}")
+       else:
+           print(f"No RGB image close enough (Δt = {closest_diff / 1e6:.2f} ms)")
+
+
+
+
+
+
 
 
        # Apply transform from camera to imu optical frame
@@ -183,24 +219,7 @@ def process_bag(bag_path, fit_plane = True):
        visualize_points(points_in_imu, coord_system = "imu")
 
 
-       # Get closest IMU orientation
-       imu_orientation = None
-       for imu_t, imu in imu_data:
-           if imu_t >= t:
-               imu_orientation = imu.orientation
-               break
-       if imu_orientation is None:
-           continue
-
-
-       # Apply IMU orientation to transform points to world frame
-       print(imu_orientation)
-       rotation = R.from_quat([imu_orientation.x,
-                               imu_orientation.y,
-                               imu_orientation.z,
-                               imu_orientation.w])
-       points_in_world = rotation.apply(points_in_imu)
-       visualize_points(points_in_world, coord_system = "world")
+       points_in_world = points_in_imu
 
 
        if fit_plane:
@@ -323,13 +342,19 @@ def get_transform_along_chain(chain, tf_messages):
    final.transform.rotation.z = q_final[2]
    final.transform.rotation.w = q_final[3]
    return final
+def decode_compressed_image(compressed_img_msg):
+   np_arr = np.frombuffer(compressed_img_msg.data, np.uint8)
+   image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)  # BGR format
+   if image is None:
+       raise ValueError("Failed to decode RGB image")
+   image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+   return image_rgb
 
 
 # Example usage
 if __name__ == '__main__':
-   bag_path = 'rosbag2_2025_06_19-15_23_07'
-   process_bag(bag_path, fit_plane=True)
-
+   bag_path = 'rosbag2_2025_07_03-17_18_29'
+   process_bag(bag_path, fit_plane=False)
 
 
 
