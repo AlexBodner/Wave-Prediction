@@ -353,8 +353,8 @@ def decode_compressed_image(compressed_img_msg):
 
 # Example usage
 if __name__ == '__main__':
-   bag_path = 'rosbag2_2025_07_03-17_18_29'
-   process_bag(bag_path, fit_plane=False)
+   bag_path = './datasets/escritorio/rosbag2_2025_06_19-15_23_07_0.db3'
+   process_bag(bag_path, fit_plane=True)
 
 
 
