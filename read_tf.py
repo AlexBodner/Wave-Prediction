@@ -2,8 +2,6 @@ import rclpy
 from rclpy.serialization import deserialize_message
 from rosidl_runtime_py.utilities import get_message
 from rosbag2_py import SequentialReader, StorageOptions, ConverterOptions
-from geometry_msgs.msg import TransformStamped
-from tf2_msgs.msg import TFMessage
 
 def read_tfs_from_rosbag(bag_path):
     storage_options = StorageOptions(uri=bag_path, storage_id='sqlite3')
@@ -32,7 +30,7 @@ def read_tfs_from_rosbag(bag_path):
 import datetime
 # Example usage
 if __name__ == '__main__':
-    bag_path = "bag_imu_tf_depth"  # <- path to your .db3 folder
+    bag_path = "mesa_desde_lejos"  # <- path to your .db3 folder
     tfs = read_tfs_from_rosbag(bag_path)
     
     for tf in tfs[:22]:  # Print first 5 for brevity

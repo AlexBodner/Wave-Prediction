@@ -353,7 +353,7 @@ def decode_compressed_image(compressed_img_msg):
 
 # Example usage
 if __name__ == '__main__':
-   bag_path = 'rosbag2_2025_07_03-17_18_29'
+   bag_path = 'mesa_desde_lejos'
    process_bag(bag_path, fit_plane=False)
 
 
