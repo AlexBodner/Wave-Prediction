@@ -1,10 +1,26 @@
-El script read_and_transform2world.py levanta las profundidades de la rosbag, las transformaciones y los datos del filtro de madgwick sobre la imu
-y transforma los puntos de coordenadas de la camara a coordenadas relativas a coordenadas de mundo usando la transformacion dada en quaterniones por el madgwick.
 
 
-descargar el siguiente bag y poner en el directorio raiz: https://drive.google.com/drive/folders/1ohewG_Bnr1-mcqP2Dzn_-ikL9sOtk208?usp=drive_link
 
-Por ahora solo ploteo la transformacion sobre una imagen seleccionada en la linea 168
-Se corre con:
 
-python3.10 read_and_transform2world.py
+## Generar grillas y plano medio
+
+descargar el bag y poner en el directorio datasets. 
+
+
+Para generar las grillas y el plano medio a partir de la rosbag, ejecutar:
+
+```bash
+python3.10 process_images_for_nn.py
+```
+
+Esto creará el directorio `numpy_grids` con los archivos de grillas (`grid_{timestamp}.npy`) y el plano medio (`mean_plane.npz`).
+
+## Visualizar grillas y plano medio
+
+Para visualizar las grillas y el plano medio junto con la imagen de profundidad más cercana, ejecutar:
+
+```bash
+python3.10 visualize_grids.py
+```
+
+Esto abrirá una ventana para cada grilla y mostrará la imagen de profundidad correspondiente.

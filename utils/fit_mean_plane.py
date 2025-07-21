@@ -5,7 +5,6 @@ from scipy.spatial import cKDTree
 
 import matplotlib.pyplot as plt
 
-from mpl_toolkits.mplot3d import Axes3D
 def fit_plane_ransac(points, thresh=0.1, max_iterations=100):
     """
     Ajusta un plano usando RANSAC.
@@ -36,6 +35,7 @@ def fit_plane_ransac(points, thresh=0.1, max_iterations=100):
 def sample_on_plane(mesh, centroid, u, v, normal, grid_size=(256,256), spacing=0.02):
     """
     Muestrea la malla en una grilla equiespaciada en el plano definido por centro, u, v.
+    spacing: distancia entre puntos de la grilla en metros.
     Retorna:
       - points_world: coordenadas XYZ reales (shape nu×nv×3)
       - uvz: coordenadas (u, v, z_local) en sistema del plano
@@ -142,60 +142,19 @@ def plot_plane_with_points(points, centroid, normal, scale=1.0):
     ax.set_title('Nube de puntos  y plano ajustado por RANSAC')
     #plt.legend()
     plt.show()
-def create_uniform_grid(points, grid_size=(256,256), spacing=0.05):
+
+def compute_plane_transform_ransac(points, thresh=0.01, max_iterations=1000):
     """
-    Crea un grid uniforme (pyvista.ImageData) a partir de una nube de puntos en 2D,
-    triangula con Delaunay, y mapea los datos (por ejemplo la elevación z) sobre el grid.
-    
-    Parámetros:
-        points: ndarray (N,3) — coordenadas X, Y, Z.
-        grid_size: tuple (nx, ny) — número de celdas a lo largo de X e Y.
-        spacing: float o tuple (sx, sy) — tamaño de espaciado de la malla.
-        
-    Devuelve:
-        grid: pyvista.ImageData — con datos muestreados.
+    Calcula la transformación al sistema de coordenadas del plano usando RANSAC.
+    Returns:
+        centroid: centro del plano (punto en el plano)
+        R: matriz de rotación (3x3) con filas [u; v; normal]
+        normal: vector normal al plano (unitario)
+        u: eje en el plano (unitario)
+        v: eje ortogonal a u en el plano (unitario)
+        inliers: índices de puntos que caen en el plano
     """
-    # 1. Triangular la nube (Delaunay 2D)
-    mesh = pv.PolyData(points[:, :3]).delaunay_2d()
-
-    # 2. Obtener límites de X e Y
-    xmin, xmax, ymin, ymax = mesh.bounds[0], mesh.bounds[1], mesh.bounds[2], mesh.bounds[3]
-
-    # 3. Definir dimensiones y espaciado
-    nx, ny = grid_size
-    sx = sy = spacing if np.isscalar(spacing) else spacing
-
-    # 4. Crear el grid uniforme
-    grid = pv.ImageData()
-    grid.dimensions = (nx + 1, ny + 1, 2)  # capaz solo un único layer en Z
-    grid.origin = (xmin, ymin, points[:,2].min())
-    grid.spacing = ( (xmax - xmin) / nx, (ymax - ymin) / ny, 1.0 )
-
-    # 5. Muestrear valores de z del mesh en la cuadrícula
-    # Primero, extraemos el valor z como un scalar
-    mesh_pt = mesh.points
-    mesh['elevation'] = mesh_pt[:, 2]
-
-    # Muestreo por interpolación desde la malla
-    sampled = grid.sample(mesh)
-
-    return sampled, mesh
-def compute_plane_transform(grid_points):
-    """
-    Calcula la transformación al sistema de coordenadas del plano medio.
-    Acepta tanto un ndarray (nu, nv, 3) como un pyvista.ImageData.
-    """
-    # Si es un pyvista.ImageData, extraer los puntos como ndarray
-    if hasattr(grid_points, "points"):
-        pts = np.asarray(grid_points.points)
-    else:
-        pts = grid_points.reshape(-1, 3)
-    centroid = np.mean(pts, axis=0)
-    centered = pts - centroid
-    U, S, Vt = np.linalg.svd(centered, full_matrices=False)
-    normal = Vt[2]
-    u = Vt[0]
-    v = Vt[1]
+    centroid, normal, u, v, inliers = fit_plane_ransac(points, thresh, max_iterations)
     R = np.vstack((u, v, normal))
     return centroid, R, normal, u, v
 
