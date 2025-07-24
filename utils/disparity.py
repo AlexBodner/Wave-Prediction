@@ -16,9 +16,8 @@ def depth_to_points(depth_compressed_msg, camera_info):
         raise ValueError("Failed to decode depth image")
 
 
-    # Convert from mm to meters if needed
+    # Convert from mm to meters 
     z = depth_array.astype(np.float32) / 1000.0
-    z[z>5] = 2
     # Get intrinsic matrix from camera_info
     K = np.array(camera_info.k).reshape(3, 3)
     fx = K[0, 0]
@@ -30,12 +29,12 @@ def depth_to_points(depth_compressed_msg, camera_info):
     height, width = depth_array.shape
     i, j = np.indices((height, width))
 
-
     # Calculate 3D points
     x = (j - cx) * z / fx
     y = (i - cy) * z / fy
 
-
     points = np.stack((x, y, z), axis=-1).reshape(-1, 3)
-    #print(points)
+
+    mask = np.isfinite(points).all(axis=1) & (points[:, 2] <= 6.0) & (points[:, 2] > 0)
+    points = points[mask]
     return points

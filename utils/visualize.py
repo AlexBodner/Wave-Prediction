@@ -19,3 +19,5 @@ def visualize_points(points, coord_system):
     ax.set_zlabel('Z (m)')
     ax.set_title(f'Pointcloud in {coord_system} Coordinates')
     plt.show()
+
+

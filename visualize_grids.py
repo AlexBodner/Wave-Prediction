@@ -29,7 +29,6 @@ def plot_grid(grid, title="Grid", mean_plane=None, origin=None, max_coords=None)
     fig = plt.figure(figsize=(8, 6))
     ax = fig.add_subplot(111, projection='3d')
     nx, ny = grid.shape[:2]
-    print(nx,ny)
     # Si se proveen origin y max_coords, usamos coordenadas físicas
     if origin is not None and max_coords is not None:
         x = np.linspace(origin[0], max_coords[0], nx)
@@ -80,7 +79,7 @@ def main(folder):
         if fname.startswith("grid_") and fname.endswith(".npy"):
             grid = np.load(os.path.join(folder, fname))
 
-            plot_grid(grid, title=fname, mean_plane=mean_plane, origin=origin, max_coords=max_coords)
+            plot_grid(grid, title=fname, mean_plane=None, origin=origin, max_coords=max_coords)
             timestamp_str = fname.split('_')[1].split('.')[0]
             try:
                 timestamp = int(timestamp_str)

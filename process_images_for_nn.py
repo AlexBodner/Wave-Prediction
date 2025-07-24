@@ -14,7 +14,7 @@ from utils.disparity import depth_to_points
 from utils.ros_rotations import *
 from utils.compute_grid import generate_weighted_height_grid
 import utils.fit_mean_plane as fit_mean_plane
-
+from utils.visualize import visualize_points
 
 
 def process_bag(bag_path, output_folder):
@@ -92,7 +92,7 @@ def process_bag(bag_path, output_folder):
 
                     # Convert depth image to 3D points
                     points = depth_to_points(depth_image_msg, camera_info_msg)
-                    #visualize_points(points, coord_system = "camara")
+                    #visualize_points(points, coord_system = "Cam")
 
                     # Stack points to a homogeneous coordinates matrix as columns of 4 elements (x,y,z,1)
                     points_hom = np.vstack([points.T, np.ones((1, points.T.shape[1]))]) # 4xN matrix
@@ -122,13 +122,12 @@ def process_bag(bag_path, output_folder):
 
     # Para cada frame, transformar los puntos al sistema del plano medio y guardar el grid
     for points_in_enu, depth_image_msg, timestamp in zip(all_points, depth_msgs, timestamps):
-        points_plane = fit_mean_plane.transform_to_plane_coords(points_in_enu, centroid, R)
-        # La grilla se genera en metros usando origin y max_coords en metros
-        grid = generate_weighted_height_grid(points_plane, grid_size=(50,50), origin=(-7,-6), max_coords=(3,2),
-                                             radius=1)
+        # POR AHORA USO POINT IN ENU PARA VISUALIZAR BIEN EL PLANO MEDIO
+        #points_plane = fit_mean_plane.transform_to_plane_coords(points_in_enu, centroid, R)
+        grid = generate_weighted_height_grid(points_in_enu, grid_size=(100,100), origin=(-7,-6), max_coords=(3,3),
+                                             radius=1.)
         #compute_grid(points, grid_size =(50,50), grid_origin= (-7,-6), grid_extent =(3,2),) #
         print("grid shape:", grid.shape)
-        print(grid)
         np.save(os.path.join(output_folder, f"grid_{timestamp}.npy"), grid)
 
 
