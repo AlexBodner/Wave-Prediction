@@ -198,5 +198,5 @@ def depth_to_points(depth_compressed_msg, camera_info):
     return points
 
 if __name__ == '__main__':
-    bag_path = Path('/home/gcastro/projects/Wave-Prediction/datasets/mesa_desde_lejos/')
+    bag_path = Path('datasets/mesa_desde_lejos/')
     process_bag(bag_path, fit_plane=True)

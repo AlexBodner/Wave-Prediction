@@ -92,7 +92,7 @@ def process_bag(bag_path, output_folder):
 
                     # Convert depth image to 3D points
                     points = depth_to_points(depth_image_msg, camera_info_msg)
-                    #visualize_points(points, coord_system = "Cam")
+                    visualize_points(points, coord_system = "Cam")
 
                     # Stack points to a homogeneous coordinates matrix as columns of 4 elements (x,y,z,1)
                     points_hom = np.vstack([points.T, np.ones((1, points.T.shape[1]))]) # 4xN matrix
