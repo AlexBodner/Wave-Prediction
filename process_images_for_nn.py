@@ -97,7 +97,7 @@ def process_bag(bag_path, output_folder):
                     # Stack points to a homogeneous coordinates matrix as columns of 4 elements (x,y,z,1)
                     points_hom = np.vstack([points.T, np.ones((1, points.T.shape[1]))]) # 4xN matrix
                     points_in_enu = (enu_T_depth_optical @ points_hom)[:3, :].T # Convert back to Nx3
-                    #visualize_points(points_in_enu, coord_system = "ENU")
+                    visualize_points(points_in_enu, coord_system = "ENU")
                     all_points.append(points_in_enu)
                     depth_msgs.append(depth_image_msg)
                     timestamps.append(timestamp)
