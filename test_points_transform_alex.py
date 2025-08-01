@@ -9,7 +9,7 @@ import tf2_ros
 from geometry_msgs.msg import TransformStamped
 from builtin_interfaces.msg import Time
 from tf_transformations import quaternion_matrix, quaternion_from_matrix, translation_from_matrix
-
+from rclpy.clock import ClockType
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -40,8 +40,7 @@ def process_bag(bag_path, fit_plane = True):
                                 sec=getattr(transform_msg.header.stamp, 'sec', 0),
                                 nanosec=getattr(transform_msg.header.stamp, 'nanosec', 0))
                             
-                        transform.header.stamp = rclpy.time.Time.from_msg(transform_msg.header.stamp, clock_type = rclpy.time.ClockType.ROS_TIME)
-                        #transform.header.stamp = transform_msg.header.stamp
+                        transform.header.stamp = transform_msg.header.stamp                        #transform.header.stamp = transform_msg.header.stamp
                         transform.header.frame_id = transform_msg.header.frame_id
                         transform.child_frame_id = transform_msg.child_frame_id
 
@@ -151,8 +150,8 @@ def visualize_points(points, coord_system):
     ax.scatter(subsample[:, 0], subsample[:, 1], subsample[:, 2],
                 s=0.5, c=subsample[:, 2], cmap='jet', marker='.')
 
-    plt.axis('equal')
-
+    #plt.axis('equal')
+    plt.axis('auto')
     ax.set_xlabel('X (m)')
     ax.set_ylabel('Y (m)')
     ax.set_zlabel('Z (m)')
@@ -198,5 +197,5 @@ def depth_to_points(depth_compressed_msg, camera_info):
     return points
 
 if __name__ == '__main__':
-    bag_path = Path('/home/gcastro/projects/Wave-Prediction/datasets/mesa_desde_lejos/')
+    bag_path = Path('datasets/mesa_desde_lejos/')
     process_bag(bag_path, fit_plane=True)

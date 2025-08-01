@@ -1,10 +1,9 @@
 from geometry_msgs.msg import TransformStamped
 from builtin_interfaces.msg import Time
-from transformations import quaternion_matrix, quaternion_from_matrix, translation_from_matrix
+from tf_transformations import quaternion_matrix, quaternion_from_matrix, translation_from_matrix
 import numpy as np
+from builtin_interfaces.msg import Time
 from rclpy.clock import ClockType
-from rclpy.time import Time
-from builtin_interfaces.msg import Time as BuiltinTime
 
 def transform_to_matrix(transform):
     t = transform.transform.translation
@@ -34,19 +33,15 @@ def transform_msg_to_transformedStamp(transform_msg):
     # Extract or rebuild the stamp
     raw_stamp = transform_msg.header.stamp
 
-    # Ensure it's a builtin_interfaces.msg.Time instance
-    if not isinstance(raw_stamp, BuiltinTime):
-        stamp = BuiltinTime()
-        stamp.sec = getattr(raw_stamp, 'sec', 0)
-        stamp.nanosec = getattr(raw_stamp, 'nanosec', 0)
-    else:
-        stamp = raw_stamp
-
-    # Convert to rclpy.Time with clock_type for consistency
-    ros_time = Time.from_msg(stamp, clock_type=ClockType.ROS_TIME)
+    # rosbags is not the official rosbag library and returns messages as dictionaries.
+    if not isinstance(transform_msg.header.stamp, Time):
+        # If it's a dict or has sec/nanosec attributes
+        transform_msg.header.stamp = Time(
+            sec=getattr(transform_msg.header.stamp, 'sec', 0),
+            nanosec=getattr(transform_msg.header.stamp, 'nanosec', 0))
 
     # Now set fields on the TransformStamped
-    transform.header.stamp = ros_time.to_msg()  # Convert back to BuiltinTime
+    transform.header.stamp = transform_msg.header.stamp                   
     transform.header.frame_id = transform_msg.header.frame_id
     transform.child_frame_id = transform_msg.child_frame_id
 
