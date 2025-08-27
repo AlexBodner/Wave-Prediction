@@ -97,12 +97,12 @@ def process_bag(bag_path, output_folder):
 
                     # Convert depth image to 3D points
                     points = depth_to_points(depth_image_msg, camera_info_msg)
-                    visualize_points(points, coord_system = "Cam")
+                    #visualize_points(points, coord_system = "Cam")
 
                     # Stack points to a homogeneous coordinates matrix as columns of 4 elements (x,y,z,1)
                     points_hom = np.vstack([points.T, np.ones((1, points.T.shape[1]))]) # 4xN matrix
                     points_in_enu = (enu_T_depth_optical @ points_hom)[:3, :].T # Convert back to Nx3
-                    visualize_points(points_in_enu, coord_system = "ENU")
+                    #visualize_points(points_in_enu, coord_system = "ENU")
                     all_points.append(points_in_enu)
                     depth_msgs.append(depth_image_msg)
                     timestamps.append(timestamp)
@@ -130,7 +130,7 @@ def process_bag(bag_path, output_folder):
         # POR AHORA USO POINT IN ENU PARA VISUALIZAR BIEN EL PLANO MEDIO
         #points_plane = fit_mean_plane.transform_to_plane_coords(points_in_enu, centroid, R)
         grid = generate_weighted_height_grid(points_in_enu, grid_size=(100,100), origin=(-7,-6), max_coords=(3,3),
-                                             radius=1.)
+                                             radius=0.2)
         #compute_grid(points, grid_size =(50,50), grid_origin= (-7,-6), grid_extent =(3,2),) #
         print("grid shape:", grid.shape)
         np.save(os.path.join(output_folder, f"grid_{timestamp}.npy"), grid)

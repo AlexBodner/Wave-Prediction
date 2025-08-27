@@ -71,15 +71,17 @@ def main(folder):
     # Por ejemplo, si los guardaste en mean_plane o en otro archivo, cámbialo aquí:
     origin = mean_plane['mins'] if 'mins' in mean_plane else None
     max_coords = mean_plane['maxs'] if 'maxs' in mean_plane else None
-    nu, nv = 50, 50  # las dim de la grilla
-    spacing = 0.02  # mismo que usaste para muestreo
-
+    nu, nv = 100, 100  # las dim de la grilla
+    origin=(-7,-6)
+    max_coords=(3,3)
+    spacing_x = (max_coords[0] - origin[0])/ nu
+    spacing_y = (max_coords[1] - origin[1])/ nv
     # Visualizar todas las grillas
     for fname in os.listdir(folder):
         if fname.startswith("grid_") and fname.endswith(".npy"):
             grid = np.load(os.path.join(folder, fname))
 
-            plot_grid(grid, title=fname, mean_plane=None, origin=origin, max_coords=max_coords)
+            plot_grid(grid, title=fname, mean_plane=mean_plane, origin=origin, max_coords=max_coords)
             timestamp_str = fname.split('_')[1].split('.')[0]
             try:
                 timestamp = int(timestamp_str)
@@ -93,25 +95,25 @@ if __name__ == "__main__":
     main(folder)
 
 
-def plane_uv_grid_to_world(nu, nv, centroid, u_vec, v_vec, spacing=0.02):
-    """
-    Genera una grilla (nu x nv) de coordenadas (u,v) proyectadas al sistema XYZ mundo.
+# def plane_uv_grid_to_world(nu, nv, centroid, u_vec, v_vec, spacing):
+#     """
+#     Genera una grilla (nu x nv) de coordenadas (u,v) proyectadas al sistema XYZ mundo.
 
-    Args:
-        nu, nv: dimensiones de la grilla
-        centroid: punto en el plano (XYZ)
-        u_vec, v_vec: vectores unitarios en el plano
-        spacing: distancia entre puntos en metros
+#     Args:
+#         nu, nv: dimensiones de la grilla
+#         centroid: punto en el plano (XYZ)
+#         u_vec, v_vec: vectores unitarios en el plano
+#         spacing: distancia entre puntos en metros
 
-    Returns:
-        world_coords: ndarray (nu, nv, 3) con las coordenadas XYZ
-    """
-    us = (np.arange(nu) - (nu-1)/2) * spacing
-    vs = (np.arange(nv) - (nv-1)/2) * spacing
+#     Returns:
+#         world_coords: ndarray (nu, nv, 3) con las coordenadas XYZ
+#     """
+#     us = (np.arange(nu) - (nu-1)/2) * spacing[0]
+#     vs = (np.arange(nv) - (nv-1)/2) * spacing[1]
 
-    world_coords = np.zeros((nu, nv, 3))
-    for i, ui in enumerate(us):
-        for j, vj in enumerate(vs):
-            world_coords[i, j] = centroid + ui * u_vec + vj * v_vec
+#     world_coords = np.zeros((nu, nv, 3))
+#     for i, ui in enumerate(us):
+#         for j, vj in enumerate(vs):
+#             world_coords[i, j] = centroid + ui * u_vec + vj * v_vec
 
-    return world_coords
+#     return world_coords

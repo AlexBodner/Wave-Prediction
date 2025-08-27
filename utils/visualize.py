@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 
+
 def visualize_points(points, coord_system):
     fig = plt.figure(figsize=(10, 7))
     ax = fig.add_subplot(111, projection='3d')
@@ -12,12 +13,11 @@ def visualize_points(points, coord_system):
     ax.scatter(subsample[:, 0], subsample[:, 1], subsample[:, 2],
                 s=0.5, c=subsample[:, 2], cmap='jet', marker='.')
 
-    plt.axis('equal')
-
+    #plt.axis('equal')
+    plt.axis('auto')
     ax.set_xlabel('X (m)')
     ax.set_ylabel('Y (m)')
     ax.set_zlabel('Z (m)')
     ax.set_title(f'Pointcloud in {coord_system} Coordinates')
     plt.show()
-
 

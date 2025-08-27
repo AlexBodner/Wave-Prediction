@@ -3,7 +3,8 @@ pyransac3d
 rclpy
 opencv-python
 matplotlib
-numpy
+numpy==1.23.5
 scipy
 rosbag2_py
-transformations
+open3d
+# transformations
