@@ -8,7 +8,7 @@ from pathlib import Path
 import tf2_ros
 from geometry_msgs.msg import TransformStamped
 from builtin_interfaces.msg import Time
-from tf_transformations import quaternion_matrix, quaternion_from_matrix, translation_from_matrix
+#from tf_transformations import quaternion_matrix, quaternion_from_matrix, translation_from_matrix
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -80,7 +80,9 @@ def process_bag(bag_path, fit_plane = True):
                 try:
                     # Deserialize the message
                     depth_image_msg = reader.deserialize(rawdata, connection.msgtype)
-
+                    points = depth_to_points(depth_image_msg, camera_info_msg)
+                    visualize_points(points, coord_system = "camara")
+                 
                     try:
                         imu_T_depth_optical = tf_buffer.lookup_transform(
                                                 target_frame='camera_imu_frame',
@@ -98,13 +100,11 @@ def process_bag(bag_path, fit_plane = True):
                     except Exception as e:
                         print(f"Error looking up transform: {e}")
                         continue
-                    
+
                     # Concatenate transforms to get ENU to depth optical frame (transforms points from depth optical to ENU)
                     enu_T_depth_optical = transform_to_matrix(enu_T_imu_optical) @ np.linalg.inv(transform_to_matrix(imu_T_imu_optical)) @ transform_to_matrix(imu_T_depth_optical)
 
                     # Convert depth image to 3D points
-                    points = depth_to_points(depth_image_msg, camera_info_msg)
-                    visualize_points(points, coord_system = "camara")
 
                     # Stack points to a homogeneous coordinates matrix as columns of 4 elements (x,y,z,1)
                     points_hom = np.vstack([points.T, np.ones((1, points.T.shape[1]))]) # 4xN matrix

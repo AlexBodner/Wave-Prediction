@@ -5,7 +5,7 @@ import numpy as np
 from rclpy.clock import ClockType
 from rclpy.time import Time
 from builtin_interfaces.msg import Time as BuiltinTime
-
+import rclpy
 def transform_to_matrix(transform):
     t = transform.transform.translation
     q = transform.transform.rotation
@@ -44,9 +44,10 @@ def transform_msg_to_transformedStamp(transform_msg):
 
     # Convert to rclpy.Time with clock_type for consistency
     ros_time = Time.from_msg(stamp, clock_type=ClockType.ROS_TIME)
+    transform.header.stamp = rclpy.time.Time.from_msg(transform_msg.header.stamp, clock_type = ClockType.ROS_TIME)
 
     # Now set fields on the TransformStamped
-    transform.header.stamp = ros_time.to_msg()  # Convert back to BuiltinTime
+    #transform.header.stamp = ros_time.to_msg()  # Convert back to BuiltinTime
     transform.header.frame_id = transform_msg.header.frame_id
     transform.child_frame_id = transform_msg.child_frame_id
 

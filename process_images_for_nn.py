@@ -17,6 +17,10 @@ import utils.fit_mean_plane as fit_mean_plane
 from utils.visualize import visualize_points
 
 
+def float_to_builtin_time(t: float) -> Time:
+    secs = int(t)
+    nanosecs = int((t - secs) * 1e9)
+    return Time(sec=secs, nanosec=nanosecs)
 def process_bag(bag_path, output_folder):
 
     os.makedirs(output_folder, exist_ok=True)
@@ -68,12 +72,13 @@ def process_bag(bag_path, output_folder):
                 try:
                     # Deserialize the message
                     depth_image_msg = reader.deserialize(rawdata, connection.msgtype)
+                    ros_time = float_to_builtin_time(timestamp)
 
                     try:
                         imu_T_depth_optical = tf_buffer.lookup_transform(
                                                 target_frame='camera_imu_frame',
                                                 source_frame='camera_depth_optical_frame',
-                                                time=tf2_ros.Time()) #depth_image_msg.header.stamp)
+                                                time=ros_time) #depth_image_msg.header.stamp)
                     except Exception as e:
                         print(f"Error looking up transform: {e}")
                         continue
@@ -82,7 +87,7 @@ def process_bag(bag_path, output_folder):
                         enu_T_imu_optical = tf_buffer.lookup_transform(
                                                 target_frame='odom_enu',
                                                 source_frame='camera_imu_optical_frame',
-                                                time=tf2_ros.Time()) #depth_image_msg.header.stamp)
+                                                time=ros_time) #depth_image_msg.header.stamp)
                     except Exception as e:
                         print(f"Error looking up transform: {e}")
                         continue
