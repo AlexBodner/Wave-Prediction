@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from torch import nn, optim
 from grid_dataset import GridSequenceDataset
 from grid_cnn import GridPredictorCNN
-from build_grid_dataset_from_files import build_dataset
+from main.build_grid_dataset_from_files import build_dataset
 
 def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
