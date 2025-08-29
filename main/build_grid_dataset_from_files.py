@@ -7,7 +7,7 @@ def extract_timestamp(filename):
     match = re.search(r'grid_(\d+)\.npy', filename)
     return int(match.group(1)) if match else None
 
-def build_dataset(root_dir='numpy_grids'):
+def build_dataset(root_dir='./numpy_grids'):
     sequences = []
 
     root_path = Path(root_dir)

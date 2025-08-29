@@ -7,4 +7,3 @@ numpy==1.23.5
 scipy
 rosbag2_py
 open3d
-# transformations

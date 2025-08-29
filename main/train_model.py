@@ -3,14 +3,27 @@ from torch.utils.data import DataLoader
 from torch import nn, optim
 from grid_dataset import GridSequenceDataset
 from grid_cnn import GridPredictorCNN
-from main.build_grid_dataset_from_files import build_dataset
+from build_grid_dataset_from_files import build_dataset
 
 def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     dataset_paths = build_dataset()
-    train_dataset = GridSequenceDataset(dataset_paths)
+    n = len(dataset_paths)
+    train_end = int(n * 0.75)
+    valid_end = int(n * 0.90)
+
+    train_paths = dataset_paths[:train_end]
+    valid_paths = dataset_paths[train_end:valid_end]
+    test_paths = dataset_paths[valid_end:]
+
+    train_dataset = GridSequenceDataset(train_paths)
+    valid_dataset = GridSequenceDataset(valid_paths)
+    test_dataset = GridSequenceDataset(test_paths)
+
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=16, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
     model = GridPredictorCNN(in_channels=3).to(device)
     criterion = nn.MSELoss()
@@ -23,8 +36,9 @@ def train():
 
         for inputs, targets in train_loader:
             inputs = inputs.to(device)
-            print(inputs)
             targets = targets.to(device)
+            inputs = torch.nan_to_num(inputs, nan=0.0)
+            targets = torch.nan_to_num(targets, nan=0.0)
 
             optimizer.zero_grad()
             outputs = model(inputs)
@@ -35,7 +49,24 @@ def train():
             running_loss += loss.item()
 
         avg_loss = running_loss / len(train_loader)
-        print(f"Epoch [{epoch+1}/{epochs}] Loss: {avg_loss:.4f}")
+
+        # Validation
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for inputs, targets in valid_loader:
+                inputs = inputs.to(device)
+                targets = targets.to(device)
+                
+                inputs = torch.nan_to_num(inputs, nan=0.0)
+                targets = torch.nan_to_num(targets, nan=0.0)
+
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+                val_loss += loss.item()
+        avg_val_loss = val_loss / len(valid_loader)
+
+        print(f"Epoch [{epoch+1}/{epochs}] Train Loss: {avg_loss:.4f} | Val Loss: {avg_val_loss:.4f}")
 
     torch.save(model.state_dict(), "grid_predictor.pth")
     print("✅ Modelo entrenado y guardado.")
