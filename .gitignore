@@ -5,3 +5,4 @@ datasets/
 camera_info_data/
 *.nc
 *.db3
+*.npy

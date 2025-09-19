@@ -13,6 +13,14 @@ from rclpy.clock import ClockType
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+
+def visualize_depth_image(depth_img):
+    plt.figure(figsize=(8, 6))
+    plt.imshow(depth_img, cmap='gray')
+    plt.title('Depth Image (rfg)')
+    plt.colorbar(label='Depth value')
+    plt.show()
+
 def process_bag(bag_path, fit_plane = True):
 
     tf_buffer = tf2_ros.Buffer(cache_time=rclpy.time.Duration(seconds=500000000))
@@ -104,7 +112,6 @@ def process_bag(bag_path, fit_plane = True):
                     # Convert depth image to 3D points
                     points = depth_to_points(depth_image_msg, camera_info_msg)
                     visualize_points(points, coord_system = "camara")
-
                     # Stack points to a homogeneous coordinates matrix as columns of 4 elements (x,y,z,1)
                     points_hom = np.vstack([points.T, np.ones((1, points.T.shape[1]))]) # 4xN matrix
                     points_in_enu = (enu_T_depth_optical @ points_hom)[:3, :].T # Convert back to Nx3
@@ -171,7 +178,6 @@ def depth_to_points(depth_compressed_msg, camera_info):
     if depth_array is None:
         raise ValueError("Failed to decode depth image")
 
-
     # Convert from mm to meters if needed
     z = depth_array.astype(np.float32) / 1000.0
     z[z>5] = 2
@@ -197,5 +203,5 @@ def depth_to_points(depth_compressed_msg, camera_info):
     return points
 
 if __name__ == '__main__':
-    bag_path = Path('datasets/mesa_desde_lejos/')
+    bag_path = Path('datasets/pileta/')
     process_bag(bag_path, fit_plane=True)

@@ -10,7 +10,7 @@ output_dir = Path('extracted_depths')
 output_dir.mkdir(exist_ok=True)
 
 # Path to your ROS 2 bag directory
-bag_path = Path('datasets/mesa_desde_lejos')
+bag_path = Path('datasets/pileta')
 
 def read_compressed_image_from_bag(bag_path, topic):
     """
