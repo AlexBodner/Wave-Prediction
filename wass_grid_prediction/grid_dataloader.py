@@ -5,7 +5,12 @@ import numpy as np
 from typing import Tuple
 
 class GridDataset(Dataset):
-    def __init__(self, nc_path: str, split: str = 'train', split_ratio: float = 0.8, transform=None):
+    def __init__(self, nc_path: str,
+                split: str = 'train',
+                split_ratio: float = 0.8,
+                transform=None,
+                context_len = 3,
+                fraction: float = 1.0):
         """
         Args:
             nc_path (str): Path to the NetCDF file.
@@ -16,22 +21,31 @@ class GridDataset(Dataset):
         self.ds = xr.open_dataset(nc_path, engine='netcdf4', decode_cf=False)
         self.data = self.ds['Z']  # shape: (time, N, M)
         self.transform = transform
+        self.context_len = context_len
+
         self.split = split
         self.split_ratio = split_ratio
         self.scale_factor = self.data.attrs.get('scale_factor', 1.0)
         self.add_offset = self.data.attrs.get('add_offset', 0.0)
+        self.fraction = fraction
         self._prepare_indices()
-
     def _prepare_indices(self):
         total_frames = self.data.shape[0]
-        # We need at least 3 frames for input, so last usable index is total_frames-1
-        # For input: t-3, t-2, t-1; target: t, so usable indices start at 3
-        usable_indices = np.arange(3, total_frames)
+        usable_indices = np.arange(self.context_len, total_frames)
         split_point = int(len(usable_indices) * self.split_ratio)
+        t_train_last = usable_indices[split_point - 1]
+        val_start = np.searchsorted(usable_indices, t_train_last + self.context_len + 1)
+
         if self.split == 'train':
-            self.indices = usable_indices[:split_point]
+            indices = usable_indices[:split_point]
         else:
-            self.indices = usable_indices[split_point:]
+            indices = usable_indices[val_start:]
+        # Use only a fraction of the indices
+        if self.fraction < 1.0:
+            n = max(1, int(len(indices) * self.fraction))
+            indices = np.random.choice(indices, n, replace=False)
+            indices = np.sort(indices)  # keep order
+        self.indices = indices
 
     def __len__(self):
         return len(self.indices)
@@ -39,7 +53,7 @@ class GridDataset(Dataset):
     def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor]:
         t = self.indices[idx]
         # Input: frames t-3, t-2, t-1; Target: frame t
-        input_frames = self.data.isel(time=slice(t-3, t)).values  # shape: (3, N, M)
+        input_frames = self.data.isel(time=slice(t-self.context_len, t)).values  # shape: (3, N, M)
         target_frame = self.data.isel(time=t).values  # shape: (N, M)
         # Apply scale/offset
         input_frames = (input_frames * self.scale_factor) + self.add_offset
@@ -67,9 +81,9 @@ class GridDataset(Dataset):
             input_tensor, target_tensor = self.transform(input_tensor, target_tensor)
         return input_tensor, target_tensor
 
-def get_dataloaders(nc_path: str, batch_size: int = 8, split_ratio: float = 0.8, num_workers: int = 0):
-    train_dataset = GridDataset(nc_path, split='train', split_ratio=split_ratio)
-    valid_dataset = GridDataset(nc_path, split='valid', split_ratio=split_ratio)
+def get_dataloaders(nc_path: str, batch_size: int = 8, split_ratio: float = 0.8, num_workers: int = 0, fraction: float = 1.0):
+    train_dataset = GridDataset(nc_path, split='train', split_ratio=split_ratio, fraction=fraction)
+    valid_dataset = GridDataset(nc_path, split='valid', split_ratio=split_ratio, fraction=fraction)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
     return train_loader, valid_loader
