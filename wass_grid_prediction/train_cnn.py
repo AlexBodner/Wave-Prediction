@@ -18,18 +18,22 @@ class BasicGridCNN(nn.Module):
     def forward(self, x):
         return self.net(x)  # (B, N, M)
 
-def train():
+def train( batch_size = 64,
+        epochs = 20,
+        fraction = 0.1,  # Use 5% of the data 
+    ):
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    nc_file = "Surfaces_20150305_103500.nc"  # Change if needed
-    train_loader, valid_loader = get_dataloaders(nc_file, batch_size=64,fraction=0.05)
+    nc_file = "Surfaces_20150305_103500.nc" 
+    train_loader, valid_loader = get_dataloaders(nc_file, batch_size=batch_size,fraction=0.2)
     model = BasicGridCNN(in_channels=3, out_channels=1).to(device)
     criterion = nn.MSELoss()
     mae_criterion = nn.L1Loss(reduction='mean')
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
-    epochs = 20
     best_valid_mae = float('inf')
     best_model_state = None
+    print ("🚀 Starting training with parameters: "
+    f"Epochs: {epochs}, Batch Size: {batch_size}, Fraction of Data: {fraction*100}%,")
     for epoch in range(epochs):
         # Training
         model.train()

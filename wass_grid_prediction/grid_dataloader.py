@@ -33,8 +33,7 @@ class GridDataset(Dataset):
         total_frames = self.data.shape[0]
         usable_indices = np.arange(self.context_len, total_frames)
         split_point = int(len(usable_indices) * self.split_ratio)
-        t_train_last = usable_indices[split_point - 1]
-        val_start = np.searchsorted(usable_indices, t_train_last + self.context_len + 1)
+        val_start = split_point + self.context_len
 
         if self.split == 'train':
             indices = usable_indices[:split_point]
