@@ -10,7 +10,8 @@ class GridDataset(Dataset):
                 split_ratio: float = 0.8,
                 transform=None,
                 context_len = 3,
-                fraction: float = 1.0):
+                fraction: float = 1.0,
+                delta: int = 1):
         """
         Args:
             nc_path (str): Path to the NetCDF file.
@@ -28,12 +29,14 @@ class GridDataset(Dataset):
         self.scale_factor = self.data.attrs.get('scale_factor', 1.0)
         self.add_offset = self.data.attrs.get('add_offset', 0.0)
         self.fraction = fraction
+        self.delta = delta
         self._prepare_indices()
     def _prepare_indices(self):
         total_frames = self.data.shape[0]
-        usable_indices = np.arange(self.context_len, total_frames)
+        # The minimum t for which all input frames exist is: t >= context_len * delta
+        usable_indices = np.arange(self.context_len * self.delta, total_frames)
         split_point = int(len(usable_indices) * self.split_ratio)
-        val_start = split_point + self.context_len
+        val_start = split_point + self.context_len * self.delta
 
         if self.split == 'train':
             indices = usable_indices[:split_point]
@@ -51,8 +54,9 @@ class GridDataset(Dataset):
 
     def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor]:
         t = self.indices[idx]
-        # Input: frames t-3, t-2, t-1; Target: frame t
-        input_frames = self.data.isel(time=slice(t-self.context_len, t)).values  # shape: (3, N, M)
+        # Input: frames t-delta*context_len, t-delta*(context_len-1), ..., t-delta; Target: frame t
+        input_indices = [t - self.delta * (self.context_len - i) for i in range(self.context_len)]
+        input_frames = self.data.isel(time=input_indices).values  # shape: (context_len, N, M)
         target_frame = self.data.isel(time=t).values  # shape: (N, M)
         # Apply scale/offset
         input_frames = (input_frames * self.scale_factor) + self.add_offset
@@ -80,9 +84,18 @@ class GridDataset(Dataset):
             input_tensor, target_tensor = self.transform(input_tensor, target_tensor)
         return input_tensor, target_tensor
 
-def get_dataloaders(nc_path: str, batch_size: int = 8, split_ratio: float = 0.8, num_workers: int = 0, fraction: float = 1.0):
-    train_dataset = GridDataset(nc_path, split='train', split_ratio=split_ratio, fraction=fraction)
-    valid_dataset = GridDataset(nc_path, split='valid', split_ratio=split_ratio, fraction=fraction)
+def get_dataloaders(
+    nc_path: str,
+    batch_size: int = 8,
+    split_ratio: float = 0.8,
+    num_workers: int = 0,
+    fraction: float = 1.0,
+    context_len: int = 3,
+    delta: int = 1
+):
+    train_dataset = GridDataset(nc_path, split='train', split_ratio=split_ratio, 
+                                fraction=fraction, context_len=context_len, delta=delta)
+    valid_dataset = GridDataset(nc_path, split='valid', split_ratio=split_ratio, fraction=fraction, context_len=context_len, delta=delta)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
     return train_loader, valid_loader
