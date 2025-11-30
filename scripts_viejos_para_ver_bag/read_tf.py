@@ -30,7 +30,7 @@ def read_tfs_from_rosbag(bag_path):
 import datetime
 # Example usage
 if __name__ == '__main__':
-    bag_path = "mesa_desde_lejos"  # <- path to your .db3 folder
+    bag_path = "datasets/barco_nordelta_realsense/realsense_records/rosbag2_2025_11_01-11_56_58"  # <- path to your .db3 folder
     tfs = read_tfs_from_rosbag(bag_path)
     
     for tf in tfs[:22]:  # Print first 5 for brevity

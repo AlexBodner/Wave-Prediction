@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 from scripts_viejos_para_ver_bag.read_compressed_depths import read_compressed_image_from_bag, find_closest_image_by_timestamp
-bag_path = Path('datasets/pileta')
+bag_path = Path('datasets/captura_con_madg_chica')
 def show_closest_color_image(bag_path, target_timestamp):
     color_images = read_compressed_image_from_bag(bag_path, '/camera/camera/depth/image_rect_raw/compressedDepth')
     if not color_images:
@@ -91,7 +91,7 @@ def main(folder):
             show_closest_color_image(bag_path, timestamp)
 
 if __name__ == "__main__":
-    folder = "numpy_grids"
+    folder = "numpy_grids/"
     main(folder)
 
 

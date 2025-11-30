@@ -190,7 +190,7 @@ def process_bag(bag_path, output_folder, n_mean_plane=5):
                     continue
 
 if __name__ == '__main__':
-    bag_path = Path('datasets/mesa_desde_lejos/')
-    process_bag(bag_path, output_folder='numpy_grids', n_mean_plane=1)
+    bag_path = Path('datasets/barco_nordelta_con_madgwick/')
+    process_bag(bag_path, output_folder='numpy_grids/barco_nordelta', n_mean_plane=1)
 
 
